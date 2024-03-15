@@ -2,6 +2,7 @@
 #include <set>
 #include "boost/date_time/local_time/local_time.hpp"
 #include "MyHttpClient.h"
+#include "scheduler.h"
 
 #include <nlohmann/json.hpp>
 
@@ -65,7 +66,7 @@ auto hideInResultSet(const std::pair<std::string, boost::posix_time::ptime> & ob
 {
     const auto time = obj.second;
     const auto dow = time.date().day_of_week();
-    return time.time_of_day().hours() < 18 && dow != boost::date_time::weekdays::Saturday && dow != boost::date_time::weekdays::Sunday;
+    return time.time_of_day().hours() < 18 && (dow != boost::date_time::weekdays::Saturday && dow != boost::date_time::weekdays::Sunday || time.time_of_day().hours() < 9);
 }
 
 auto getSlotsFiltered(const std::set<std::string>& venues) -> std::set<std::pair<std::string, boost::posix_time::ptime>>
@@ -82,41 +83,68 @@ auto getSlotsFiltered(const std::set<std::string>& venues) -> std::set<std::pair
     return res;
 }
 
-std::string getMessage() {
-    static const std::unordered_map<std::string, std::string> names = {
-            {"BethnalGreenGardens", "BBG"},
-            {"KingEdwardMemorialPark", "KEMP"},
-            {"WappingGardens", "WG"}
-    };
-    auto resp = getSlotsFiltered(std::set<std::string>{"BethnalGreenGardens", "KingEdwardMemorialPark",
-                                                       "WappingGardens"});
-    std::stringstream ss;
-    for (const auto& val : resp)
-    {
-        ss << names.at(val.first) << ": " << val.second.date().day_of_week().as_short_string() << " " << val.second << std::endl;
+struct MessageStore
+{
+    set<pair<string, boost::posix_time::ptime>> _store;
+    string getMessage() {
+        static const std::unordered_map<std::string, std::string> names = {
+                {"BethnalGreenGardens", "BBG"},
+                {"KingEdwardMemorialPark", "KEMP"},
+                {"WappingGardens", "WG"},
+                {"PoplarRecGround", "PRG"},
+                {"StJohnsParkLondon", "SJP"},
+        };
+        auto resp = getSlotsFiltered(std::set<std::string>{"BethnalGreenGardens", "KingEdwardMemorialPark",
+                                                           "WappingGardens", "PoplarRecGround", "StJohnsParkLondon"});
+        auto found = find_if(resp.begin(), resp.end(), [&](auto val)
+        {
+            return _store.find(val) == _store.end();
+        });
+        vector<std::pair<std::string, boost::posix_time::ptime>> filtered(found, resp.end());
+        std::stringstream ss;
+        for (const auto& val : filtered)
+        {
+            ss << names.at(val.first) << ": " << val.second.date().day_of_week().as_short_string() << " " << val.second << std::endl;
+            _store.emplace(val);
+        }
+        return ss.str();
     }
-    return ss.str();
-}
+};
 
+void Task1(MessageStore& store, const TgBot::Api& api)
+{
+    cout << "Executing task" << endl;
+    try {
+        auto now = std::chrono::system_clock::now();
+        auto msg = store.getMessage();
+        if (!msg.empty())
+        {
+//            api.sendMessage(130609346, msg);
+            api.sendMessage(-4078773052, msg);
+        } else
+        {
+            cout << "No updates" << endl;
+        }
+    }
+    catch (std::exception &e)
+    {
+        cout << e.what() << endl;
+    }
+}
 
 void run() {
     TgBot::Bot bot("985088905:AAFsjswEAesYlvSiiiX-dybUqXrG8QyZjc0");
     bot.getEvents().onCommand("start", [&bot](TgBot::Message::Ptr message) {
         bot.getApi().sendMessage(message->chat->id, "Hi!");
     });
-    bot.getEvents().onCommand("courts", [&bot](TgBot::Message::Ptr message) {
-        printf("Req from %s", message->chat->username.c_str());
-        auto msg = getMessage();
-        if (!msg.empty()) {
-            bot.getApi().sendMessage(message->chat->id, msg);
-        }
-    });
     printf("Bot username: %s\n", bot.getApi().getMe()->username.c_str());
-    TgBot::TgLongPoll longPoll(bot);
-    while (true) {
-        printf("Long poll started\n");
-        longPoll.start();
-    }
+    auto now = std::chrono::system_clock::now();
+
+    Scheduler sch;
+
+    MessageStore store;
+    sch.ScheduleEvery(std::chrono::seconds(300), [&]{ Task1(store, bot.getApi()); });
+    getchar();
 }
 
 int main() {
@@ -125,7 +153,7 @@ int main() {
         run();
     } catch (TgBot::TgException& e) {
         printf("error: %s\n", e.what());
-        sleep(60*5);
+        sleep(60*10);
         printf("restarting");
         run();
     }

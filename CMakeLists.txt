@@ -20,6 +20,7 @@ include(FetchContent)
 FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz)
 FetchContent_MakeAvailable(json)
 
-add_executable(scraper main.cpp MyHttpClient.h)
+add_executable(scraper main.cpp MyHttpClient.h
+        scheduler.h)
 
 target_link_libraries(scraper /usr/local/lib/libTgBot.a ${CMAKE_THREAD_LIBS_INIT} ${OPENSSL_LIBRARIES} ${Boost_LIBRARIES} ${CURL_LIBRARIES} nlohmann_json::nlohmann_json)
