@@ -1,5 +1,4 @@
-#ifndef SCRAPER_MYHTTPCLIENT_H
-#define SCRAPER_MYHTTPCLIENT_H
+#pragma once
 
 #ifdef HAVE_CURL
 
@@ -13,11 +12,11 @@
 #include <string>
 #include <vector>
 
-class MyHttpClient : public TgBot::HttpClient {
+class mylittlehttpclient : public TgBot::HttpClient {
 
 public:
-    MyHttpClient();
-    ~MyHttpClient() override;
+    mylittlehttpclient();
+    ~mylittlehttpclient() override;
 
     /**
      * @brief Sends a request to the url.
@@ -40,14 +39,14 @@ private:
 };
 
 
-MyHttpClient::MyHttpClient() : _httpParser() {
+mylittlehttpclient::mylittlehttpclient() : _httpParser() {
     curlSettings = curl_easy_init();
 
     curl_easy_setopt(curlSettings, CURLOPT_CONNECTTIMEOUT, 20);
     curl_easy_setopt(curlSettings, CURLOPT_TIMEOUT, 25);
 }
 
-MyHttpClient::~MyHttpClient() {
+mylittlehttpclient::~mylittlehttpclient() {
     curl_easy_cleanup(curlSettings);
 }
 
@@ -56,11 +55,11 @@ static std::size_t curlWriteString(char* ptr, std::size_t size, std::size_t nmem
     return size * nmemb;
 }
 
-std::string MyHttpClient::makeRequest(const TgBot::Url& url, const std::vector<TgBot::HttpReqArg>& args) const {
+std::string mylittlehttpclient::makeRequest(const TgBot::Url& url, const std::vector<TgBot::HttpReqArg>& args) const {
     return "";
 }
 
-std::string MyHttpClient::makeRequest(const std::string& url, const std::vector<TgBot::HttpReqArg>& args) const {
+std::string mylittlehttpclient::makeRequest(const std::string& url, const std::vector<TgBot::HttpReqArg>& args) const {
     // Copy settings for each call because we change CURLOPT_URL and other stuff.
     // This also protects multithreaded case.
     auto curl = curl_easy_duphandle(curlSettings);
@@ -122,6 +121,4 @@ std::string MyHttpClient::makeRequest(const std::string& url, const std::vector<
     return _httpParser.extractBody(response);
 }
 
-
-#endif //SCRAPER_MYHTTPCLIENT_H
 #endif

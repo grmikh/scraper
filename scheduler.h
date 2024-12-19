@@ -1,5 +1,4 @@
-#ifndef SCRAPER_SCHEDULER_H
-#define SCRAPER_SCHEDULER_H
+#pragma once
 
 #include <queue>
 #include <thread>
@@ -83,7 +82,7 @@ public:
 
     void ScheduleEvery(std::chrono::system_clock::duration interval, std::function<void()> func)
     {
-        std::function<void()> waitFunc = [this,interval,func]()
+        std::function waitFunc = [this,interval,func]()
         {
             func();
             this->ScheduleEvery(interval, func);
@@ -92,4 +91,3 @@ public:
     }
 };
 
-#endif //SCRAPER_SCHEDULER_H
