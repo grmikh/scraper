@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
     }
     std::string token{argv[1]};
     std::string url{argv[2]};
-    std::string chatid{argv[2]};
+    std::string chatid{argv[3]};
     std::string config_file{argv[4]};
     CourtContext::initContext(config_file);
     try {
